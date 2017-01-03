@@ -138,9 +138,8 @@ describe Broadcaster do
   end
 
   it 'Custom redis url' do
-    invalid_url = 'redis://invalid_host:6379'
-    error = proc { Broadcaster.new redis_url: invalid_url }.must_raise RuntimeError
-    error.message.must_equal "Can't connect to: #{invalid_url}"
+    error = proc { Broadcaster.new redis_url: 'redis://invalid_host:6379' }.must_raise StandardError
+    error.message.must_match 'invalid_host'
   end
 
 end
