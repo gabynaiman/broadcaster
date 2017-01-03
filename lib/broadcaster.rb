@@ -77,7 +77,7 @@ class Broadcaster
             begin
               block.call message
             rescue => ex
-              logger.error(self.class) { "Failed | #{scoped(channel)} | #{subscription_id} | #{message}\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}" }
+              logger.error(self.class) { "Failed | #{channel} | #{subscription_id} | #{message}\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}" }
             end
           end
         end
