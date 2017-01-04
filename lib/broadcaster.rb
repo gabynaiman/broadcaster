@@ -72,13 +72,11 @@ class Broadcaster
         channel = notification[2]
         message = Marshal.load notification[3]
         logger.debug(self.class) { "Broadcasting (#{subscriptions[channel].count}) | #{channel} | #{message}" }
-        mutex.synchronize do
-          subscriptions[channel].each do |subscription_id, block|
-            begin
-              block.call message
-            rescue => ex
-              logger.error(self.class) { "Failed | #{channel} | #{subscription_id} | #{message}\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}" }
-            end
+        subscriptions[channel].each do |subscription_id, block|
+          begin
+            block.call message
+          rescue => ex
+            logger.error(self.class) { "Failed | #{channel} | #{subscription_id} | #{message}\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}" }
           end
         end
       end
