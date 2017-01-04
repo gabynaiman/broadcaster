@@ -2,6 +2,18 @@ require 'minitest_helper'
 
 describe Broadcaster do
 
+  class Receiver
+    attr_reader :messages
+
+    def initialize
+      @messages = []
+    end
+
+    def call(message)
+      messages << message
+    end
+  end
+
   def wait_for(&block)
     Timeout.timeout(3) do
       while !block.call
@@ -140,6 +152,22 @@ describe Broadcaster do
   it 'Custom redis url' do
     error = proc { Broadcaster.new redis_url: 'redis://invalid_host:6379' }.must_raise StandardError
     error.message.must_match 'invalid_host'
+  end
+
+  it 'Subscribe object' do
+    broadcaster = Broadcaster.new
+
+    receiver = Receiver.new
+
+    broadcaster.subscribe 'channel_1', receiver
+
+    broadcaster.publish 'channel_1', 'message 1'
+    broadcaster.publish 'channel_1', 'message 2'
+    broadcaster.publish 'channel_1', 'message 3'
+
+    wait_for { receiver.messages.count == 3 }
+
+    receiver.messages.must_equal ['message 1', 'message 2', 'message 3']
   end
 
 end
