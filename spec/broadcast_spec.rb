@@ -149,8 +149,8 @@ describe Broadcaster do
                                  1 => ['message 1', 'message 2']
   end
 
-  it 'Custom redis url' do
-    error = proc { Broadcaster.new redis_url: 'redis://invalid_host:6379' }.must_raise StandardError
+  it 'Custom redis connection' do
+    error = proc { Broadcaster.new redis_settings: 'redis://invalid_host:6379' }.must_raise StandardError
     error.message.must_match 'invalid_host'
   end
 

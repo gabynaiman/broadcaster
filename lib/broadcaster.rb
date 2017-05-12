@@ -6,7 +6,8 @@ class Broadcaster
 
   extend ClassConfig
 
-  attr_config :redis_url, 'redis://localhost:6379'
+  attr_config :redis_client, Redic
+  attr_config :redis_settings, 'redis://localhost:6379'
   attr_config :logger, Logger.new(STDOUT)
 
   attr_reader :id
@@ -14,8 +15,9 @@ class Broadcaster
   def initialize(options={})
     @id = options.fetch(:id, SecureRandom.uuid)
     @logger = options.fetch(:logger, Broadcaster.logger)
-    @publisher = Redic.new options.fetch(:redis_url, Broadcaster.redis_url)
-    @subscriber = Redic.new options.fetch(:redis_url, Broadcaster.redis_url)
+    @redis_client = options.fetch(:redis_client, Broadcaster.redis_client)
+    @publisher = @redis_client.new options.fetch(:redis_settings, Broadcaster.redis_settings)
+    @subscriber = @redis_client.new options.fetch(:redis_settings, Broadcaster.redis_settings)
     @subscriptions = Hash.new { |h,k| h[k] = {} }
     @mutex = Mutex.new
     listen

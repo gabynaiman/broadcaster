@@ -46,7 +46,10 @@ broadcaster.unsubscribe_all
 ```ruby
 Broadcaster.configure do |config|
   config.logger = Logger.new '/file.log'
-  config.redis_url = 'redis://host_name:6379'
+  config.redis_settings = 'redis://host_name:6379'
+  # or
+  config.redis_client = Redic::Sentinels
+  config.redis_settings = hosts: [sentinel_1, sentinel_2], master_name: 'mymaster'
 end
 ```
 
@@ -54,9 +57,12 @@ end
 
 ```ruby
 options = {
-  id: 'my_app',                         # Shared broadcaster for multiple processes
-  redis_url: 'redis://host_name:6379',  # Custom redis connection
-  logger: Logger.new('/file.log')       # Custom logger
+  id: 'my_app',                             # Shared broadcaster for multiple processes
+  redis_settings: 'redis://host_name:6379', # Custom redis connection
+  logger: Logger.new('/file.log')           # Custom logger
+  # or
+  redis_client: Redic::Sentinels,
+  redis_settings: hosts: [sentinel_1, sentinel_2], master_name: 'mymaster'
 }
 
 Broadcaster.new options
