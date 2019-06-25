@@ -70,16 +70,20 @@ class Broadcaster
 
     Thread.new do
       loop do
-        notification = subscriber.client.read
-        channel = notification[2]
-        message = Marshal.load notification[3]
-        logger.debug(self.class) { "Broadcasting (#{subscriptions[channel].count}) | #{channel} | #{message}" }
-        subscriptions[channel].each do |subscription_id, block|
-          begin
-            block.call message
-          rescue => ex
-            logger.error(self.class) { "Failed | #{channel} | #{subscription_id} | #{message}\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}" }
+        begin
+          notification = subscriber.client.read
+          channel = notification[2]
+          message = Marshal.load notification[3]
+          logger.debug(self.class) { "Broadcasting (#{subscriptions[channel].count}) | #{channel} | #{message}" }
+          subscriptions[channel].each do |subscription_id, block|
+            begin
+              block.call message
+            rescue => ex
+              logger.error(self.class) { "Failed | #{channel} | #{subscription_id} | #{message}\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}" }
+            end
           end
+        rescue java.nio.channels.ClosedSelectorException
+          # JRuby - Safe closing thread
         end
       end
     end
