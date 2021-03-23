@@ -4,7 +4,6 @@
 [![Build Status](https://travis-ci.org/gabynaiman/broadcaster.svg?branch=master)](https://travis-ci.org/gabynaiman/broadcaster)
 [![Coverage Status](https://coveralls.io/repos/gabynaiman/broadcaster/badge.svg?branch=master)](https://coveralls.io/r/gabynaiman/broadcaster?branch=master)
 [![Code Climate](https://codeclimate.com/github/gabynaiman/broadcaster.svg)](https://codeclimate.com/github/gabynaiman/broadcaster)
-[![Dependency Status](https://gemnasium.com/gabynaiman/broadcaster.svg)](https://gemnasium.com/gabynaiman/broadcaster)
 
 Broadcasting based on Redis PubSub
 
