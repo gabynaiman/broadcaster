@@ -20,8 +20,8 @@ class Broadcaster
     @logger_name = "Broadcaster (#{@id})"
     @redis_client = options.fetch(:redis_client, Broadcaster.redis_client)
     @redis_settings = options.fetch(:redis_settings, Broadcaster.redis_settings)
-    @publisher = new_redis_connection
-    @subscriptions = Hash.new { |h,k| h[k] = {} }
+    @publisher = establish_connection
+    @subscriptions = {}
     @mutex = Mutex.new
     listen
   end
@@ -34,7 +34,8 @@ class Broadcaster
   def subscribe(channel, callable=nil, &block)
     mutex.synchronize do
       SecureRandom.uuid.tap do |subscription_id|
-        subscriptions[scoped(channel)][subscription_id] = callable || block
+        channel_subscriptions = subscriptions[scoped(channel)] ||= {}
+        channel_subscriptions[subscription_id] = callable || block
         logger.debug(logger_name) { "Subscribed | #{scoped(channel)} | #{subscription_id}" }
       end
     end
@@ -63,7 +64,7 @@ class Broadcaster
 
   attr_reader :publisher, :subscriber, :subscriptions, :mutex, :logger, :logger_name, :redis_client, :redis_settings
 
-  def new_redis_connection
+  def establish_connection
     redis_client.new(redis_settings).tap { |redis| redis.call! 'PING' }
   end
 
@@ -72,7 +73,7 @@ class Broadcaster
   end
 
   def listen
-    subscriber = new_redis_connection
+    subscriber = establish_connection
     subscriber.call! 'PSUBSCRIBE', scoped('*')
 
     logger.info(logger_name) { 'Listener started' }
@@ -85,15 +86,19 @@ class Broadcaster
           channel = notification[2]
           message = Marshal.load notification[3]
 
-          current_subscriptions = mutex.synchronize { subscriptions[channel].dup }
+          current_subscriptions = mutex.synchronize do
+            subscriptions.key?(channel) ? subscriptions[channel].dup : nil
+          end
 
-          logger.debug(logger_name) { "Broadcasting (#{current_subscriptions.count}) | #{channel} | #{message}" }
+          if current_subscriptions
+            logger.debug(logger_name) { "Broadcasting (#{current_subscriptions.count}) | #{channel} | #{message}" }
 
-          current_subscriptions.each do |subscription_id, block|
-            begin
-              block.call message
-            rescue => ex
-              logger.error(logger_name) { "Failed | #{channel} | #{subscription_id} | #{message}\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}" }
+            current_subscriptions.each do |subscription_id, block|
+              begin
+                block.call message
+              rescue => ex
+                logger.error(logger_name) { "Failed | #{channel} | #{subscription_id} | #{message}\n#{ex.class}: #{ex.message}\n#{ex.backtrace.join("\n")}" }
+              end
             end
           end
 
