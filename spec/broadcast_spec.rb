@@ -2,26 +2,14 @@ require 'minitest_helper'
 
 describe Broadcaster do
 
-  class Receiver
-    attr_reader :messages
-
-    def initialize
-      @messages = []
-    end
-
-    def call(message)
-      messages << message
-    end
-  end
-
   def wait_for(&block)
-    Timeout.timeout(3) do
+    Timeout.timeout(1) do
       while !block.call
         sleep 0.001
       end
     end
   end
-  
+
   it 'Multiple channels' do
     broadcaster = Broadcaster.new
 
@@ -40,7 +28,7 @@ describe Broadcaster do
 
     wait_for { received_messages.values.flatten.count == 4 }
 
-    received_messages.must_equal 'channel_1' => ['message 1', 'message 4'], 
+    received_messages.must_equal 'channel_1' => ['message 1', 'message 4'],
                                  'channel_2' => ['message 2', 'message 3']
   end
 
@@ -69,7 +57,7 @@ describe Broadcaster do
 
     subscriptions = 2.times.map do |i|
       broadcaster.subscribe 'channel_1' do |message|
-        received_messages[i] << message 
+        received_messages[i] << message
       end
     end
 
@@ -94,7 +82,7 @@ describe Broadcaster do
 
     2.times.map do
       broadcaster.subscribe 'channel_1' do |message|
-        received_messages << message 
+        received_messages << message
       end
     end
 
@@ -149,7 +137,7 @@ describe Broadcaster do
                                  1 => ['message 1', 'message 2']
   end
 
-  it 'Custom redis connection' do
+  it 'Invalid redis connection' do
     error = proc { Broadcaster.new redis_settings: 'redis://invalid_host:6379' }.must_raise StandardError
     error.message.must_match 'invalid_host'
   end
@@ -168,6 +156,31 @@ describe Broadcaster do
     wait_for { receiver.messages.count == 3 }
 
     receiver.messages.must_equal ['message 1', 'message 2', 'message 3']
+  end
+
+  it 'Automatic reconnection' do
+    broadcaster = Broadcaster.new redis_client: MockRedis
+
+    received_messages = []
+
+    broadcaster.subscribe 'channel_1' do |message|
+      received_messages << message
+    end
+
+    broadcaster.publish 'channel_1', 'message 1'
+
+    MockRedis.stop
+
+    error = proc { broadcaster.publish 'channel_1', 'message 2' }.must_raise RuntimeError
+    error.message.must_equal 'Redis connection error'
+
+    MockRedis.start
+
+    broadcaster.publish 'channel_1', 'message 3'
+
+    wait_for { received_messages.count == 2 }
+
+    received_messages.must_equal ['message 1', 'message 3']
   end
 
 end
